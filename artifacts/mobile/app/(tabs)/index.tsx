@@ -45,6 +45,7 @@ export default function HomeScreen() {
     newlyUnlockedStage,
     dismissEmblemUnlock,
     startTimer,
+    stopTimer,
   } = useGuider();
 
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -126,6 +127,7 @@ export default function HomeScreen() {
             timerStarted={timerStarted}
             stage={stage}
             onStart={startTimer}
+            onStop={stopTimer}
           />
         </Animated.View>
 

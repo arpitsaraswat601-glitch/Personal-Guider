@@ -19,13 +19,14 @@ interface Props {
   timerStarted: boolean;
   stage: Stage;
   onStart: () => void;
+  onStop: () => void;
 }
 
 function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
-function getElapsed(startIso: string): { days: number; hours: number; minutes: number; seconds: number } {
+function getElapsed(startIso: string) {
   const totalSecs = Math.max(
     0,
     Math.floor((Date.now() - new Date(startIso).getTime()) / 1000)
@@ -37,13 +38,12 @@ function getElapsed(startIso: string): { days: number; hours: number; minutes: n
   return { days, hours, minutes, seconds };
 }
 
-export function TimerCircle({ streakStart, timerStarted, stage, onStart }: Props) {
+export function TimerCircle({ streakStart, timerStarted, stage, onStart, onStop }: Props) {
   const colors = useColors();
   const glowAnim = useSharedValue(0);
   const scaleAnim = useSharedValue(1);
   const [elapsed, setElapsed] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // Live 1-second tick
   useEffect(() => {
     if (!timerStarted || !streakStart) return;
     setElapsed(getElapsed(streakStart));
@@ -53,7 +53,6 @@ export function TimerCircle({ streakStart, timerStarted, stage, onStart }: Props
     return () => clearInterval(interval);
   }, [timerStarted, streakStart]);
 
-  // Glow pulse
   useEffect(() => {
     glowAnim.value = withRepeat(
       withSequence(
@@ -66,21 +65,17 @@ export function TimerCircle({ streakStart, timerStarted, stage, onStart }: Props
   }, [glowAnim]);
 
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glowAnim.value, [0, 1], [0.2, 0.7]),
+    opacity: interpolate(glowAnim.value, [0, 1], [0.25, 0.75]),
     transform: [{ scale: interpolate(glowAnim.value, [0, 1], [0.98, 1.04]) }],
   }));
 
   const outerGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glowAnim.value, [0, 1], [0.08, 0.25]),
+    opacity: interpolate(glowAnim.value, [0, 1], [0.08, 0.22]),
     transform: [{ scale: interpolate(glowAnim.value, [0, 1], [0.96, 1.08]) }],
   }));
 
-  const handlePressIn = () => {
-    scaleAnim.value = withTiming(0.94, { duration: 120 });
-  };
-  const handlePressOut = () => {
-    scaleAnim.value = withSpring(1, { damping: 12 });
-  };
+  const handlePressIn = () => { scaleAnim.value = withTiming(0.94, { duration: 120 }); };
+  const handlePressOut = () => { scaleAnim.value = withSpring(1, { damping: 12 }); };
 
   const btnStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleAnim.value }],
@@ -88,48 +83,46 @@ export function TimerCircle({ streakStart, timerStarted, stage, onStart }: Props
 
   return (
     <View style={styles.wrapper}>
-      {/* Outer ambient glow */}
-      <Animated.View
-        style={[
-          styles.outerGlow,
-          { backgroundColor: stage.color },
-          outerGlowStyle,
-        ]}
-      />
+      <Animated.View style={[styles.outerGlow, { backgroundColor: stage.color }, outerGlowStyle]} />
 
-      {/* Main circle ring */}
       <Animated.View
         style={[
           styles.circle,
-          {
-            borderColor: stage.color,
-            shadowColor: stage.color,
-          },
+          { borderColor: stage.color, shadowColor: stage.color },
           glowStyle,
         ]}
       >
         {timerStarted && streakStart ? (
-          // Timer display
           <View style={styles.timerContent}>
-            <Text style={[styles.timeRow, { color: stage.color }]}>
-              {pad(elapsed.hours)}
-              <Text style={[styles.timeUnit, { color: stage.color + "AA" }]}>h </Text>
-              {pad(elapsed.minutes)}
-              <Text style={[styles.timeUnit, { color: stage.color + "AA" }]}>m </Text>
-              {pad(elapsed.seconds)}
-              <Text style={[styles.timeUnit, { color: stage.color + "AA" }]}>s</Text>
+            {/* Hours : Minutes : Seconds — bright white glow */}
+            <Text style={styles.timeRow}>
+              <Text style={styles.timeNum}>{pad(elapsed.hours)}</Text>
+              <Text style={styles.timeUnit}>h </Text>
+              <Text style={styles.timeNum}>{pad(elapsed.minutes)}</Text>
+              <Text style={styles.timeUnit}>m </Text>
+              <Text style={styles.timeNum}>{pad(elapsed.seconds)}</Text>
+              <Text style={styles.timeUnit}>s</Text>
             </Text>
-            <View style={[styles.dayBadge, { borderColor: stage.color + "40", backgroundColor: stage.color + "15" }]}>
-              <Text style={[styles.dayText, { color: stage.color }]}>
-                Day {elapsed.days}
-              </Text>
+
+            {/* Day badge — bright white */}
+            <View style={[styles.dayBadge, { borderColor: "#FFFFFF30", backgroundColor: "#FFFFFF10" }]}>
+              <Text style={styles.dayText}>Day {elapsed.days}</Text>
             </View>
-            <Text style={[styles.stageName, { color: colors.mutedForeground }]}>
+
+            {/* Stage label */}
+            <Text style={[styles.stageName, { color: stage.color }]}>
               {stage.name.toUpperCase()}
             </Text>
+
+            {/* Stop button inside circle */}
+            <Pressable
+              onPress={onStop}
+              style={styles.stopBtn}
+            >
+              <Text style={styles.stopText}>STOP</Text>
+            </Pressable>
           </View>
         ) : (
-          // Start button
           <Animated.View style={btnStyle}>
             <Pressable
               onPress={onStart}
@@ -146,7 +139,7 @@ export function TimerCircle({ streakStart, timerStarted, stage, onStart }: Props
   );
 }
 
-const CIRCLE_SIZE = 230;
+const CIRCLE_SIZE = 240;
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -156,38 +149,48 @@ const styles = StyleSheet.create({
   },
   outerGlow: {
     position: "absolute",
-    width: CIRCLE_SIZE + 60,
-    height: CIRCLE_SIZE + 60,
-    borderRadius: (CIRCLE_SIZE + 60) / 2,
+    width: CIRCLE_SIZE + 70,
+    height: CIRCLE_SIZE + 70,
+    borderRadius: (CIRCLE_SIZE + 70) / 2,
   },
   circle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
     borderWidth: 1.5,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#0C0C0C",
     alignItems: "center",
     justifyContent: "center",
     shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 28,
+    shadowRadius: 30,
     elevation: 14,
   },
   timerContent: {
     alignItems: "center",
-    gap: 8,
+    gap: 7,
   },
   timeRow: {
-    fontSize: 34,
+    lineHeight: 44,
+  },
+  timeNum: {
+    fontSize: 36,
     fontWeight: "700",
-    letterSpacing: 1,
-    lineHeight: 40,
+    color: "#FFFFFF",
+    // White glow via text shadow
+    textShadowColor: "rgba(255, 255, 255, 0.85)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
   },
   timeUnit: {
     fontSize: 18,
     fontWeight: "400",
+    color: "#FFFFFFBB",
+    textShadowColor: "rgba(255, 255, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   dayBadge: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 5,
     borderRadius: 100,
     borderWidth: 1,
@@ -196,20 +199,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 1,
+    color: "#FFFFFF",
+    textShadowColor: "rgba(255, 255, 255, 0.8)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   stageName: {
     fontSize: 10,
     letterSpacing: 2.5,
+  },
+  stopBtn: {
     marginTop: 2,
+    paddingHorizontal: 22,
+    paddingVertical: 7,
+    borderRadius: 100,
+    backgroundColor: "#1E1E1E",
+    borderWidth: 1,
+    borderColor: "#FF444440",
+  },
+  stopText: {
+    color: "#FF6B6B",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 2.5,
   },
   startBtn: {
-    paddingHorizontal: 40,
-    paddingVertical: 16,
+    paddingHorizontal: 42,
+    paddingVertical: 17,
     borderRadius: 100,
     shadowColor: "#FF6B35",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
+    shadowOpacity: 0.65,
+    shadowRadius: 18,
     elevation: 8,
   },
   startText: {

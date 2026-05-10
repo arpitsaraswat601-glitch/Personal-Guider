@@ -119,6 +119,7 @@ interface GuiderState {
 interface GuiderContextType extends GuiderState {
   completeOnboarding: (profile: UserProfile) => Promise<void>;
   startTimer: () => Promise<void>;
+  stopTimer: () => Promise<void>;
   getCurrentStreak: () => number;
   getElapsedSeconds: () => number;
   getCurrentStage: () => Stage;
@@ -279,18 +280,34 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
       peakStageId: 1,
     };
     setState((prev) => {
+      // If a streakStart already exists (resumed after stop), keep it
+      const keepExisting = !!prev.streakStart && prev.streakHistory.length > 0;
       const next: GuiderState = {
         ...prev,
         timerStarted: true,
-        streakStart: now,
+        streakStart: keepExisting ? prev.streakStart : now,
         isActive: true,
-        streakHistory: [startRecord],
-        powerScore: 0,
+        streakHistory: keepExisting ? prev.streakHistory : [startRecord],
+        powerScore: keepExisting ? prev.powerScore : 0,
       };
       saveState(next);
       return next;
     });
-    prevStageIdRef.current = 1;
+    if (!state.streakStart) {
+      prevStageIdRef.current = 1;
+    }
+  }, [saveState, state.streakStart]);
+
+  const stopTimer = useCallback(async () => {
+    setState((prev) => {
+      const next: GuiderState = {
+        ...prev,
+        timerStarted: false,
+        // Keep streakStart intact so elapsed time is preserved on resume
+      };
+      saveState(next);
+      return next;
+    });
   }, [saveState]);
 
   const getElapsedSeconds = useCallback((): number => {
@@ -372,6 +389,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
         ...state,
         completeOnboarding,
         startTimer,
+        stopTimer,
         getCurrentStreak,
         getElapsedSeconds,
         getCurrentStage,
