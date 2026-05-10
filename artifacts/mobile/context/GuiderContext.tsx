@@ -107,6 +107,7 @@ export const COMPANION_MESSAGES: Record<UserType, string[]> = {
 interface GuiderState {
   profile: UserProfile | null;
   isOnboarded: boolean;
+  timerStarted: boolean;
   streakStart: string | null;
   isActive: boolean;
   streakHistory: StreakRecord[];
@@ -117,16 +118,19 @@ interface GuiderState {
 
 interface GuiderContextType extends GuiderState {
   completeOnboarding: (profile: UserProfile) => Promise<void>;
+  startTimer: () => Promise<void>;
   getCurrentStreak: () => number;
+  getElapsedSeconds: () => number;
   getCurrentStage: () => Stage;
   handleRelapse: (continueFromPrevious: boolean) => Promise<void>;
   dismissEmblemUnlock: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
 const GuiderContext = createContext<GuiderContextType | null>(null);
 
-const STORAGE_KEY = "guider_state_v2";
+const STORAGE_KEY = "guider_state_v3";
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -139,6 +143,12 @@ function getDaysSince(dateStr: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
+function getSecondsSince(dateStr: string): number {
+  const start = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now.getTime() - start.getTime()) / 1000);
+}
+
 function getStageForDays(days: number): Stage {
   let current = STAGES[0]!;
   for (const stage of STAGES) {
@@ -149,18 +159,21 @@ function getStageForDays(days: number): Stage {
   return current;
 }
 
+const INITIAL_STATE: GuiderState = {
+  profile: null,
+  isOnboarded: false,
+  timerStarted: false,
+  streakStart: null,
+  isActive: false,
+  streakHistory: [],
+  unlockedEmblems: [],
+  powerScore: 0,
+  newlyUnlockedStage: null,
+};
+
 export function GuiderProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [state, setState] = useState<GuiderState>({
-    profile: null,
-    isOnboarded: false,
-    streakStart: null,
-    isActive: false,
-    streakHistory: [],
-    unlockedEmblems: [],
-    powerScore: 0,
-    newlyUnlockedStage: null,
-  });
+  const [state, setState] = useState<GuiderState>(INITIAL_STATE);
 
   const prevStageIdRef = useRef<number>(1);
 
@@ -186,8 +199,9 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  // Stage unlock checker — runs every minute
   useEffect(() => {
-    if (!state.isActive || !state.streakStart) return;
+    if (!state.isActive || !state.streakStart || !state.timerStarted) return;
 
     const interval = setInterval(() => {
       setState((prev) => {
@@ -218,10 +232,8 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
           prevStageIdRef.current = currentStage.id;
         }
 
-        const minutesSinceStart = Math.floor(
-          (Date.now() - new Date(prev.streakStart!).getTime()) / 60000
-        );
-        const newPowerScore = minutesSinceStart * 2 + days * 50;
+        const secondsSinceStart = getSecondsSince(prev.streakStart!);
+        const newPowerScore = Math.floor(secondsSinceStart / 30) + days * 50;
 
         const next: GuiderState = {
           ...prev,
@@ -235,23 +247,18 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [state.isActive, state.streakStart, saveState]);
+  }, [state.isActive, state.streakStart, state.timerStarted, saveState]);
 
   const completeOnboarding = useCallback(
     async (profile: UserProfile) => {
-      const now = new Date().toISOString();
-      const startRecord: StreakRecord = {
-        id: generateId(),
-        startDate: now,
-        days: 0,
-        peakStageId: 1,
-      };
       const next: GuiderState = {
+        ...INITIAL_STATE,
         profile,
         isOnboarded: true,
-        streakStart: now,
-        isActive: true,
-        streakHistory: [startRecord],
+        timerStarted: false,
+        streakStart: null,
+        isActive: false,
+        streakHistory: [],
         unlockedEmblems: [],
         powerScore: 0,
         newlyUnlockedStage: null,
@@ -263,10 +270,38 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     [saveState]
   );
 
+  const startTimer = useCallback(async () => {
+    const now = new Date().toISOString();
+    const startRecord: StreakRecord = {
+      id: generateId(),
+      startDate: now,
+      days: 0,
+      peakStageId: 1,
+    };
+    setState((prev) => {
+      const next: GuiderState = {
+        ...prev,
+        timerStarted: true,
+        streakStart: now,
+        isActive: true,
+        streakHistory: [startRecord],
+        powerScore: 0,
+      };
+      saveState(next);
+      return next;
+    });
+    prevStageIdRef.current = 1;
+  }, [saveState]);
+
+  const getElapsedSeconds = useCallback((): number => {
+    if (!state.streakStart || !state.timerStarted) return 0;
+    return getSecondsSince(state.streakStart);
+  }, [state.streakStart, state.timerStarted]);
+
   const getCurrentStreak = useCallback((): number => {
-    if (!state.streakStart || !state.isActive) return 0;
+    if (!state.streakStart || !state.isActive || !state.timerStarted) return 0;
     return getDaysSince(state.streakStart);
-  }, [state.streakStart, state.isActive]);
+  }, [state.streakStart, state.isActive, state.timerStarted]);
 
   const getCurrentStage = useCallback((): Stage => {
     const days = getCurrentStreak();
@@ -287,10 +322,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
           return r;
         });
 
-        let newStart = now;
-        if (continueFromPrevious && prev.streakStart) {
-          newStart = prev.streakStart;
-        }
+        const newStart = continueFromPrevious && prev.streakStart ? prev.streakStart : now;
 
         const newRecord: StreakRecord = {
           id: generateId(),
@@ -301,11 +333,10 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
 
         const next: GuiderState = {
           ...prev,
+          timerStarted: true,
           streakStart: newStart,
           isActive: true,
-          streakHistory: continueFromPrevious
-            ? updatedHistory
-            : [...updatedHistory, newRecord],
+          streakHistory: continueFromPrevious ? updatedHistory : [...updatedHistory, newRecord],
           newlyUnlockedStage: null,
         };
         saveState(next);
@@ -327,15 +358,26 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     });
   }, [saveState]);
 
+  const logout = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch (_) {}
+    prevStageIdRef.current = 1;
+    setState(INITIAL_STATE);
+  }, []);
+
   return (
     <GuiderContext.Provider
       value={{
         ...state,
         completeOnboarding,
+        startTimer,
         getCurrentStreak,
+        getElapsedSeconds,
         getCurrentStage,
         handleRelapse,
         dismissEmblemUnlock,
+        logout,
         isLoading,
       }}
     >
