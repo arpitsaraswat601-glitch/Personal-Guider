@@ -66,12 +66,14 @@ export default function HomeScreen() {
   }, [bgGlowAnim]);
 
   useEffect(() => {
-    const quoteInterval = setInterval(() => {
-      setQuoteIndex((i) => (i + 1) % MOTIVATIONAL_QUOTES.length);
-    }, 10000);
-    const hindiInterval = setInterval(() => {
-      setHindiIndex((i) => (i + 1) % HINDI_THOUGHTS.length);
-    }, 15000);
+    const quoteInterval = setInterval(
+      () => setQuoteIndex((i) => (i + 1) % MOTIVATIONAL_QUOTES.length),
+      10000
+    );
+    const hindiInterval = setInterval(
+      () => setHindiIndex((i) => (i + 1) % HINDI_THOUGHTS.length),
+      15000
+    );
     return () => {
       clearInterval(quoteInterval);
       clearInterval(hindiInterval);
@@ -88,40 +90,44 @@ export default function HomeScreen() {
 
   if (!profile) return null;
 
+  const tabBarHeight = Platform.OS === "web" ? 84 : 62;
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <EmblemUnlockModal stage={newlyUnlockedStage} onDismiss={dismissEmblemUnlock} />
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={[
-          styles.scroll,
+          styles.scrollContent,
           {
-            paddingTop: insets.top + (Platform.OS === "web" ? 67 : 16),
-            paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 100),
+            paddingTop: insets.top + (Platform.OS === "web" ? 67 : 14),
+            paddingBottom: insets.bottom + tabBarHeight + 16,
           },
         ]}
         showsVerticalScrollIndicator={false}
+        bounces
       >
         {/* Top bar */}
-        <Animated.View entering={FadeInDown.duration(500)} style={styles.topBar}>
-          <View>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.topBar}>
+          <View style={styles.topBarLeft}>
             <Text style={[styles.welcome, { color: colors.mutedForeground }]}>
               WELCOME BACK
             </Text>
-            <Text style={[styles.userName, { color: colors.foreground }]}>
+            <Text
+              style={[styles.userName, { color: colors.foreground }]}
+              numberOfLines={1}
+            >
               {profile.name.toUpperCase()}
             </Text>
           </View>
-          <Pressable
-            onPress={() => router.push("/relapse")}
-            style={styles.relapseBtn}
-          >
-            <Ionicons name="refresh" size={20} color={colors.mutedForeground} />
+          <Pressable onPress={() => router.push("/relapse")} style={styles.relapseBtn} hitSlop={8}>
+            <Ionicons name="refresh" size={18} color={colors.mutedForeground} />
           </Pressable>
         </Animated.View>
 
-        {/* Live timer circle — main focus */}
-        <Animated.View entering={FadeInDown.duration(600).delay(80)} style={styles.timerSection}>
+        {/* Live timer circle */}
+        <Animated.View entering={FadeInDown.duration(500).delay(60)} style={styles.timerSection}>
           <TimerCircle
             streakStart={streakStart}
             timerStarted={timerStarted}
@@ -131,17 +137,20 @@ export default function HomeScreen() {
           />
         </Animated.View>
 
-        {/* Stage emblem below circle */}
+        {/* Stage emblem — compact row below circle */}
         {timerStarted && (
-          <Animated.View entering={FadeInDown.duration(500).delay(120)}>
+          <Animated.View
+            entering={FadeInDown.duration(400).delay(100)}
+            style={styles.emblemRow}
+          >
             <StageEmblem stage={stage} currentDays={streakDays} size="large" />
           </Animated.View>
         )}
 
-        {/* Power score card */}
+        {/* Power score */}
         {timerStarted && (
           <Animated.View
-            entering={FadeInDown.duration(600).delay(160)}
+            entering={FadeInDown.duration(400).delay(130)}
             style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <View style={styles.powerRow}>
@@ -170,7 +179,7 @@ export default function HomeScreen() {
               </View>
             </View>
             <Text style={[styles.powerEmojis, { color: colors.mutedForeground }]}>
-              {Array(Math.min(streakDays + 1, 6))
+              {Array(Math.min(streakDays + 1, 5))
                 .fill("")
                 .map((_, i) => (i % 2 === 0 ? "👍 " : "💪 "))
                 .join("")}
@@ -179,13 +188,13 @@ export default function HomeScreen() {
         )}
 
         {/* AI companion */}
-        <Animated.View entering={FadeInDown.duration(600).delay(200)}>
+        <Animated.View entering={FadeInDown.duration(400).delay(160)}>
           <AICompanion userType={profile.userType} userName={profile.name} />
         </Animated.View>
 
-        {/* Motivation quote */}
+        {/* Motivation */}
         <Animated.View
-          entering={FadeInDown.duration(600).delay(260)}
+          entering={FadeInDown.duration(400).delay(190)}
           style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
@@ -196,22 +205,20 @@ export default function HomeScreen() {
 
         {/* Hindi thought */}
         <Animated.View
-          entering={FadeInDown.duration(600).delay(320)}
+          entering={FadeInDown.duration(400).delay(220)}
           style={[styles.card, { backgroundColor: "#0D0D0D", borderColor: "#FF6B3520" }]}
         >
-          <Text style={[styles.sectionLabel, { color: "#FF6B3580" }]}>
-            HINDI THOUGHT
-          </Text>
+          <Text style={[styles.sectionLabel, { color: "#FF6B3580" }]}>HINDI THOUGHT</Text>
           <Text style={[styles.hindiText, { color: "#DDDDDD" }]}>{hindi}</Text>
         </Animated.View>
 
         {/* Oath */}
         <Animated.View
-          entering={FadeInDown.duration(600).delay(380)}
+          entering={FadeInDown.duration(400).delay(250)}
           style={[styles.oathCard, { borderColor: colors.secondary + "40" }]}
         >
           <Pressable onPress={() => setOathIndex((i) => (i + 1) % OATHS.length)}>
-            <Text style={[styles.oathLabel, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>
               YOUR OATH
             </Text>
             <Text style={[styles.oathText, { color: colors.secondary }]}>"{oath}"</Text>
@@ -230,61 +237,72 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    paddingHorizontal: 20,
-    gap: 20,
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    gap: 14,
+    flexGrow: 1,
   },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  topBarLeft: {
+    flex: 1,
+    marginRight: 8,
+  },
   welcome: {
     fontSize: 10,
     letterSpacing: 3,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "800",
-    letterSpacing: 1,
-    marginTop: 2,
+    letterSpacing: 0.8,
+    marginTop: 1,
   },
   relapseBtn: {
-    padding: 10,
+    padding: 8,
   },
   timerSection: {
     alignItems: "center",
   },
+  emblemRow: {
+    alignItems: "center",
+  },
   card: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 20,
-    gap: 12,
+    padding: 16,
+    gap: 10,
   },
   powerRow: {
     flexDirection: "row",
-    gap: 20,
     alignItems: "center",
   },
   powerItem: {
     flex: 1,
     alignItems: "center",
-    gap: 4,
+    gap: 3,
   },
   powerValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   powerKey: {
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontSize: 10,
+    letterSpacing: 0.4,
   },
   divider: {
     width: 1,
-    height: 40,
+    height: 36,
+    marginHorizontal: 12,
   },
   powerEmojis: {
-    fontSize: 16,
+    fontSize: 14,
     textAlign: "center",
   },
   sectionLabel: {
@@ -292,33 +310,27 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   quote: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "500",
-    lineHeight: 26,
+    lineHeight: 23,
     fontStyle: "italic",
   },
   hindiText: {
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: 14,
+    lineHeight: 22,
     fontStyle: "italic",
   },
   oathCard: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 20,
-    gap: 8,
+    padding: 16,
     backgroundColor: "transparent",
   },
-  oathLabel: {
-    fontSize: 10,
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
   oathText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     fontStyle: "italic",
-    lineHeight: 26,
+    lineHeight: 24,
   },
   oathHint: {
     fontSize: 11,

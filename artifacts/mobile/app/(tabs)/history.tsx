@@ -20,10 +20,15 @@ export default function HistoryScreen() {
   const { streakHistory, unlockedEmblems, getCurrentStreak } = useGuider();
 
   const currentDays = getCurrentStreak();
+  const tabBarHeight = Platform.OS === "web" ? 84 : 62;
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const getStage = (days: number) => {
@@ -37,54 +42,83 @@ export default function HistoryScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={[
-          styles.scroll,
+          styles.scrollContent,
           {
-            paddingTop: insets.top + (Platform.OS === "web" ? 67 : 16),
-            paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 100),
+            paddingTop: insets.top + (Platform.OS === "web" ? 67 : 14),
+            paddingBottom: insets.bottom + tabBarHeight + 16,
           },
         ]}
         showsVerticalScrollIndicator={false}
+        bounces
       >
-        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
           <Text style={[styles.title, { color: colors.foreground }]}>History</Text>
           <Text style={[styles.sub, { color: colors.mutedForeground }]}>Your full journey</Text>
         </Animated.View>
 
-        {unlockedEmblems.length > 0 && (
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>UNLOCKED EMBLEMS</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.emblemRow}>
+        {/* Unlocked Emblems */}
+        {unlockedEmblems.length > 0 ? (
+          <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+              UNLOCKED EMBLEMS
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.emblemRow}
+            >
               {unlockedEmblems.map((emblem) => {
                 const stage = STAGES.find((s) => s.id === emblem.stageId) ?? STAGES[0]!;
                 return (
-                  <View key={emblem.stageId} style={[styles.emblemCard, { backgroundColor: colors.card, borderColor: stage.color + "40" }]}>
+                  <View
+                    key={emblem.stageId}
+                    style={[
+                      styles.emblemCard,
+                      { backgroundColor: colors.card, borderColor: stage.color + "40" },
+                    ]}
+                  >
                     <StageEmblem stage={stage} currentDays={emblem.totalDays} size="small" />
-                    <Text style={[styles.emblemName, { color: stage.color }]}>{stage.name}</Text>
-                    <Text style={[styles.emblemDate, { color: colors.mutedForeground }]}>Day {emblem.totalDays}</Text>
-                    <Text style={[styles.emblemDate, { color: colors.mutedForeground }]}>{formatDate(emblem.unlockedAt)}</Text>
+                    <Text style={[styles.emblemName, { color: stage.color }]}>
+                      {stage.name}
+                    </Text>
+                    <Text style={[styles.emblemMeta, { color: colors.mutedForeground }]}>
+                      Day {emblem.totalDays}
+                    </Text>
+                    <Text style={[styles.emblemMeta, { color: colors.mutedForeground }]}>
+                      {formatDate(emblem.unlockedAt)}
+                    </Text>
                   </View>
                 );
               })}
             </ScrollView>
           </Animated.View>
-        )}
-
-        {unlockedEmblems.length === 0 && (
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="medal-outline" size={32} color={colors.mutedForeground} />
+        ) : (
+          <Animated.View
+            entering={FadeInDown.duration(400).delay(80)}
+            style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
+            <MaterialCommunityIcons name="medal-outline" size={28} color={colors.mutedForeground} />
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
               Reach 10 days to unlock your first emblem
             </Text>
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.duration(500).delay(200)} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>STREAK HISTORY</Text>
+        {/* Streak History */}
+        <Animated.View entering={FadeInDown.duration(400).delay(130)} style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+            STREAK HISTORY
+          </Text>
           {streakHistory.length === 0 ? (
-            <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <MaterialCommunityIcons name="clock-outline" size={32} color={colors.mutedForeground} />
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No streaks yet. Start your journey.</Text>
+            <View
+              style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <MaterialCommunityIcons name="clock-outline" size={28} color={colors.mutedForeground} />
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                No streaks yet. Start your journey.
+              </Text>
             </View>
           ) : (
             <View style={styles.streakList}>
@@ -95,23 +129,56 @@ export default function HistoryScreen() {
                 return (
                   <Animated.View
                     key={record.id}
-                    entering={FadeInDown.duration(400).delay(i * 60)}
-                    style={[styles.streakCard, { backgroundColor: colors.card, borderColor: isActive ? stage.color : colors.border }]}
+                    entering={FadeInDown.duration(350).delay(i * 50)}
+                    style={[
+                      styles.streakCard,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: isActive ? stage.color : colors.border,
+                      },
+                    ]}
                   >
-                    <View style={[styles.streakIndicator, { backgroundColor: stage.color }]} />
+                    <View
+                      style={[
+                        styles.streakIndicator,
+                        { backgroundColor: stage.color },
+                      ]}
+                    />
                     <View style={styles.streakInfo}>
-                      <Text style={[styles.streakDays, { color: isActive ? stage.color : colors.foreground }]}>
+                      <Text
+                        style={[
+                          styles.streakDays,
+                          { color: isActive ? stage.color : colors.foreground },
+                        ]}
+                      >
                         {days} {days === 1 ? "day" : "days"}
-                        {isActive && <Text style={[styles.activeBadge, { color: stage.color }]}> • Active</Text>}
+                        {isActive && (
+                          <Text style={{ color: stage.color, fontWeight: "400", fontSize: 13 }}>
+                            {" "}• Active
+                          </Text>
+                        )}
                       </Text>
-                      <Text style={[styles.streakStage, { color: colors.mutedForeground }]}>{stage.name}</Text>
-                      <Text style={[styles.streakDate, { color: colors.mutedForeground }]}>
+                      <Text style={[styles.streakStage, { color: colors.mutedForeground }]}>
+                        {stage.name}
+                      </Text>
+                      <Text
+                        style={[styles.streakDate, { color: colors.mutedForeground }]}
+                        numberOfLines={2}
+                      >
                         Started {formatDate(record.startDate)}
-                        {record.endDate ? ` • Ended ${formatDate(record.endDate)}` : ""}
+                        {record.endDate ? `\nEnded ${formatDate(record.endDate)}` : ""}
                       </Text>
                     </View>
                     {isActive && (
-                      <View style={[styles.liveTag, { backgroundColor: stage.color + "20", borderColor: stage.color + "40" }]}>
+                      <View
+                        style={[
+                          styles.liveTag,
+                          {
+                            backgroundColor: stage.color + "20",
+                            borderColor: stage.color + "40",
+                          },
+                        ]}
+                      >
                         <Text style={[styles.liveText, { color: stage.color }]}>NOW</Text>
                       </View>
                     )}
@@ -131,103 +198,105 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    paddingHorizontal: 20,
-    gap: 24,
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    gap: 16,
+    flexGrow: 1,
   },
   header: {
-    gap: 4,
+    gap: 2,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800",
   },
   sub: {
-    fontSize: 14,
+    fontSize: 13,
   },
   section: {
-    gap: 14,
+    gap: 12,
   },
   sectionTitle: {
     fontSize: 10,
     letterSpacing: 2,
   },
   emblemRow: {
-    gap: 12,
+    gap: 10,
     paddingBottom: 4,
   },
   emblemCard: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 16,
+    padding: 12,
     alignItems: "center",
-    gap: 8,
-    width: 120,
+    gap: 6,
+    width: 110,
   },
   emblemName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     textAlign: "center",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  emblemDate: {
+  emblemMeta: {
     fontSize: 10,
     textAlign: "center",
   },
   emptyCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  streakList: {
-    gap: 10,
-  },
-  streakCard: {
     borderRadius: 14,
     borderWidth: 1,
-    padding: 16,
-    flexDirection: "row",
-    gap: 12,
+    padding: 20,
     alignItems: "center",
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  streakList: {
+    gap: 8,
+  },
+  streakCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
   },
   streakIndicator: {
-    width: 4,
-    height: "100%",
+    width: 3,
+    minHeight: 44,
     borderRadius: 2,
-    minHeight: 40,
+    marginTop: 2,
   },
   streakInfo: {
     flex: 1,
     gap: 3,
   },
   streakDays: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
   },
   streakStage: {
-    fontSize: 13,
+    fontSize: 12,
   },
   streakDate: {
     fontSize: 11,
-  },
-  activeBadge: {
-    fontWeight: "400",
-    fontSize: 14,
+    lineHeight: 16,
   },
   liveTag: {
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 2,
   },
   liveText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
   },
