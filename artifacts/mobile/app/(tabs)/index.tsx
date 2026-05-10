@@ -18,7 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   useGuider,
@@ -46,6 +46,8 @@ export default function HomeScreen() {
     dismissEmblemUnlock,
     startTimer,
     stopTimer,
+    activeTriggerTask,
+    triggerTaskAccepted,
   } = useGuider();
 
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -91,6 +93,7 @@ export default function HomeScreen() {
   if (!profile) return null;
 
   const tabBarHeight = Platform.OS === "web" ? 84 : 62;
+  const hasUnfinishedTask = !!activeTriggerTask && triggerTaskAccepted;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -126,6 +129,22 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
+        {/* Unfinished trigger task banner */}
+        {hasUnfinishedTask && (
+          <Animated.View entering={FadeInDown.duration(400).delay(40)}>
+            <Pressable
+              style={[styles.taskBanner, { backgroundColor: "#6BCB7712", borderColor: "#6BCB7740" }]}
+              onPress={() => router.push("/trigger")}
+            >
+              <MaterialCommunityIcons name="clock-check-outline" size={16} color="#6BCB77" />
+              <Text style={[styles.taskBannerText, { color: "#6BCB77" }]}>
+                Unfinished task: <Text style={{ fontWeight: "700" }}>{activeTriggerTask?.title}</Text>
+              </Text>
+              <MaterialCommunityIcons name="chevron-right" size={16} color="#6BCB7780" />
+            </Pressable>
+          </Animated.View>
+        )}
+
         {/* Live timer circle */}
         <Animated.View entering={FadeInDown.duration(500).delay(60)} style={styles.timerSection}>
           <TimerCircle
@@ -137,7 +156,7 @@ export default function HomeScreen() {
           />
         </Animated.View>
 
-        {/* Stage emblem — compact row below circle */}
+        {/* Stage emblem */}
         {timerStarted && (
           <Animated.View
             entering={FadeInDown.duration(400).delay(100)}
@@ -197,9 +216,7 @@ export default function HomeScreen() {
           entering={FadeInDown.duration(400).delay(190)}
           style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            MOTIVATION
-          </Text>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>MOTIVATION</Text>
           <Text style={[styles.quote, { color: colors.foreground }]}>"{quote}"</Text>
         </Animated.View>
 
@@ -225,6 +242,18 @@ export default function HomeScreen() {
             <Text style={[styles.oathHint, { color: colors.mutedForeground }]}>
               Tap to change
             </Text>
+          </Pressable>
+        </Animated.View>
+
+        {/* Need Control? Button */}
+        <Animated.View entering={FadeInDown.duration(400).delay(280)}>
+          <Pressable
+            style={[styles.controlBtn, { borderColor: colors.primary + "40" }]}
+            onPress={() => router.push("/trigger")}
+          >
+            <MaterialCommunityIcons name="lightning-bolt" size={18} color={colors.primary} />
+            <Text style={[styles.controlBtnText, { color: colors.primary }]}>Need Control?</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.primary + "80"} />
           </Pressable>
         </Animated.View>
       </ScrollView>
@@ -265,6 +294,19 @@ const styles = StyleSheet.create({
   },
   relapseBtn: {
     padding: 8,
+  },
+  taskBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  taskBannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   timerSection: {
     alignItems: "center",
@@ -335,5 +377,20 @@ const styles = StyleSheet.create({
   oathHint: {
     fontSize: 11,
     marginTop: 4,
+  },
+  controlBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: "transparent",
+  },
+  controlBtnText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
