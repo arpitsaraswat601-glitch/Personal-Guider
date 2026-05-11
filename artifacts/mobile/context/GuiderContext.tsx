@@ -13,9 +13,9 @@ import { TriggerTask } from "@/data/triggers";
 export type UserType = "student" | "worker" | "child";
 
 export interface UserProfile {
-  name: string;       // full display name
-  firstName?: string; // given name (set from onboarding v2+)
-  lastName?: string;  // family name (optional)
+  name: string;
+  firstName?: string;
+  lastName?: string;
   age: string;
   userType: UserType;
 }
@@ -43,17 +43,17 @@ export interface Stage {
 }
 
 export const STAGES: Stage[] = [
-  { id: 1, days: 0, name: "Lost Mind", color: "#666666" },
-  { id: 2, days: 10, name: "Beginner", color: "#7EC8E3" },
-  { id: 3, days: 15, name: "Fighter", color: "#5BA4CF" },
-  { id: 4, days: 25, name: "Controlled", color: "#4A9EFF" },
-  { id: 5, days: 30, name: "Stable Mind", color: "#56A3A6" },
-  { id: 6, days: 45, name: "Strong Soul", color: "#F4A261" },
-  { id: 7, days: 60, name: "Iron Discipline", color: "#FF6B35" },
-  { id: 8, days: 100, name: "Mental Warrior", color: "#E76F51" },
-  { id: 9, days: 150, name: "Elite Control", color: "#E63946" },
-  { id: 10, days: 300, name: "Mastered Self", color: "#FFD700" },
-  { id: 11, days: 365, name: "Reborn Legend", color: "#FFD700" },
+  { id: 1,  days: 0,   name: "Lost Mind",        color: "#666666" },
+  { id: 2,  days: 10,  name: "Beginner",          color: "#7EC8E3" },
+  { id: 3,  days: 15,  name: "Fighter",           color: "#5BA4CF" },
+  { id: 4,  days: 25,  name: "Controlled",        color: "#4A9EFF" },
+  { id: 5,  days: 30,  name: "Stable Mind",       color: "#56A3A6" },
+  { id: 6,  days: 45,  name: "Strong Soul",       color: "#F4A261" },
+  { id: 7,  days: 60,  name: "Iron Discipline",   color: "#FF6B35" },
+  { id: 8,  days: 100, name: "Mental Warrior",    color: "#E76F51" },
+  { id: 9,  days: 150, name: "Elite Control",     color: "#E63946" },
+  { id: 10, days: 300, name: "Mastered Self",     color: "#FFD700" },
+  { id: 11, days: 365, name: "Reborn Legend",     color: "#FFD700" },
 ];
 
 export const MOTIVATIONAL_QUOTES = [
@@ -124,13 +124,22 @@ interface GuiderState {
   isActive: boolean;
   streakHistory: StreakRecord[];
   unlockedEmblems: EmblemRecord[];
+  /** Base bonus points from completed tasks (time-based part computed live) */
+  bonusPoints: number;
+  /** legacy field — kept for migration, not used for display */
   powerScore: number;
+  /** Points from Focus & Memory tasks */
+  focusMemoryPoints: number;
+  /** Points from Health & Discipline tasks */
+  healthDisciplinePoints: number;
   newlyUnlockedStage: Stage | null;
   activeTriggerTask: TriggerTask | null;
   triggerTaskAccepted: boolean;
 }
 
 interface GuiderContextType extends GuiderState {
+  /** Live power score = time-based + bonus points */
+  powerScore: number;
   completeOnboarding: (profile: UserProfile) => Promise<void>;
   startTimer: () => Promise<void>;
   stopTimer: () => Promise<void>;
@@ -150,26 +159,34 @@ interface GuiderContextType extends GuiderState {
 const GuiderContext = createContext<GuiderContextType | null>(null);
 
 const STORAGE_KEY = "guider_state_v4";
-const LEGACY_KEY = "guider_state_v3";
+const LEGACY_KEY  = "guider_state_v3";
 
 function generateId(): string {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  return Date.now().toString() + Math.random().toString(36).slice(2, 9);
 }
 
 function getDaysSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000));
 }
 
 function getSecondsSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  return Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000));
 }
 
-function getStageForDays(days: number): Stage {
+export function getStageForDays(days: number): Stage {
   let current = STAGES[0]!;
-  for (const stage of STAGES) {
-    if (days >= stage.days) current = stage;
+  for (const s of STAGES) {
+    if (days >= s.days) current = s;
   }
   return current;
+}
+
+/** Compute the time-based part of power score from elapsed seconds + days */
+function computeTimePower(streakStart: string | null, timerStarted: boolean): number {
+  if (!streakStart || !timerStarted) return 0;
+  const secs = getSecondsSince(streakStart);
+  const days = getDaysSince(streakStart);
+  return Math.floor(secs / 30) + days * 50;
 }
 
 const INITIAL_STATE: GuiderState = {
@@ -180,7 +197,10 @@ const INITIAL_STATE: GuiderState = {
   isActive: false,
   streakHistory: [],
   unlockedEmblems: [],
+  bonusPoints: 0,
   powerScore: 0,
+  focusMemoryPoints: 0,
+  healthDisciplinePoints: 0,
   newlyUnlockedStage: null,
   activeTriggerTask: null,
   triggerTaskAccepted: false,
@@ -195,6 +215,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (_) {}
   }, []);
 
+  // ── Load persisted state ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -204,10 +225,15 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
           if (raw) await AsyncStorage.removeItem(LEGACY_KEY);
         }
         if (raw) {
-          const saved = JSON.parse(raw) as Partial<GuiderState>;
+          const saved = JSON.parse(raw) as Partial<GuiderState> & { powerScore?: number };
+          // Migrate legacy powerScore → bonusPoints if new fields absent
+          const bonusPoints = saved.bonusPoints ?? saved.powerScore ?? 0;
           const merged: GuiderState = {
             ...INITIAL_STATE,
             ...saved,
+            bonusPoints,
+            focusMemoryPoints: saved.focusMemoryPoints ?? 0,
+            healthDisciplinePoints: saved.healthDisciplinePoints ?? 0,
             newlyUnlockedStage: null,
             activeTriggerTask: saved.activeTriggerTask ?? null,
             triggerTaskAccepted: saved.triggerTaskAccepted ?? false,
@@ -222,7 +248,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Stage unlock checker — runs every 60s
+  // ── Stage unlock checker — every 60s ───────────────────────────────────
   useEffect(() => {
     if (!state.isActive || !state.streakStart || !state.timerStarted) return;
     const interval = setInterval(() => {
@@ -245,20 +271,15 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
           }
           prevStageIdRef.current = currentStage.id;
         }
-        const secs = getSecondsSince(prev.streakStart!);
-        const next: GuiderState = {
-          ...prev,
-          powerScore: Math.floor(secs / 30) + days * 50,
-          unlockedEmblems: newEmblems,
-          newlyUnlockedStage,
-        };
+        const next: GuiderState = { ...prev, unlockedEmblems: newEmblems, newlyUnlockedStage };
         saveState(next);
         return next;
       });
-    }, 60000);
+    }, 60_000);
     return () => clearInterval(interval);
   }, [state.isActive, state.streakStart, state.timerStarted, saveState]);
 
+  // ── Actions ─────────────────────────────────────────────────────────────
   const completeOnboarding = useCallback(async (profile: UserProfile) => {
     const next: GuiderState = { ...INITIAL_STATE, profile, isOnboarded: true };
     prevStageIdRef.current = 1;
@@ -278,7 +299,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
         streakHistory: keepExisting
           ? prev.streakHistory
           : [{ id: generateId(), startDate: now, days: 0, peakStageId: 1 }],
-        powerScore: keepExisting ? prev.powerScore : 0,
+        bonusPoints: keepExisting ? prev.bonusPoints : 0,
       };
       saveState(next);
       return next;
@@ -364,11 +385,22 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
 
   const completeTriggerTask = useCallback(async () => {
     setState((prev) => {
-      const next = {
+      const task = prev.activeTriggerTask;
+      const pts = task?.pointValue ?? 15;
+      const cat = task?.pointCategory ?? "both";
+      const next: GuiderState = {
         ...prev,
         activeTriggerTask: null,
         triggerTaskAccepted: false,
-        powerScore: prev.powerScore + 25,
+        bonusPoints: prev.bonusPoints + pts,
+        focusMemoryPoints:
+          cat === "focusMemory" || cat === "both"
+            ? prev.focusMemoryPoints + pts
+            : prev.focusMemoryPoints,
+        healthDisciplinePoints:
+          cat === "healthDiscipline" || cat === "both"
+            ? prev.healthDisciplinePoints + pts
+            : prev.healthDisciplinePoints,
       };
       saveState(next);
       return next;
@@ -383,10 +415,15 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     });
   }, [saveState]);
 
+  // ── Live power score (recomputed each render — no staleness) ────────────
+  const livePowerScore =
+    computeTimePower(state.streakStart, state.timerStarted) + state.bonusPoints;
+
   return (
     <GuiderContext.Provider
       value={{
         ...state,
+        powerScore: livePowerScore,
         completeOnboarding,
         startTimer,
         stopTimer,
