@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Guider - Arpit Saraswat</title>
+    <style>
+        body { background-color: #0d1117; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #161b22; padding: 30px; border-radius: 20px; border: 1px solid #30363d; text-align: center; width: 300px; }
+        h1 { color: #58a6ff; }
+        #timer { font-size: 48px; margin: 20px 0; font-family: monospace; }
+        .btn { background: #238636; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .quote { margin-top: 20px; font-style: italic; color: #8b949e; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Personal Guider</h1>
+        <div id="timer">00:00:00</div>
+        <button class="btn" id="startBtn">START FOCUS</button>
+        <div class="quote" id="quote">"Arpit, consistency hi jeet ki chabi hai!"</div>
+    </div>
+    <script>
+        let sec = 0; let interval;
+        const quotes = ["99% in 10th Board!", "Merchant Navy ki taiyari shuru!", "Stay Focused, Arpit!", "Workout like a Pro!"];
+        document.getElementById('startBtn').onclick = function() {
+            if(!interval) {
+                interval = setInterval(() => {
+                    sec++;
+                    let h = Math.floor(sec/3600).toString().padStart(2,'0');
+                    let m = Math.floor((sec%3600)/60).toString().padStart(2,'0');
+                    let s = (sec%60).toString().padStart(2,'0');
+                    document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+                }, 1000);
+                this.innerText = "STOP"; this.style.background = "#da3633";
+                document.getElementById('quote').innerText = quotes[Math.floor(Math.random()*quotes.length)];
+            } else {
+                clearInterval(interval); interval = null;
+                this.innerText = "START FOCUS"; this.style.background = "#2386
