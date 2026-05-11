@@ -1,4 +1,4 @@
-export type TriggerCategory = "mantra" | "dialogue" | "brain" | "focus" | "outdoor";
+export type TriggerCategory = "mantra" | "dialogue" | "brain" | "focus" | "outdoor" | "game";
 
 export interface TriggerTask {
   id: string;
@@ -8,6 +8,7 @@ export interface TriggerTask {
   description: string;
   duration?: string;
   reps?: string;
+  interactive?: boolean; // for mini-games rendered as components
 }
 
 export const COMPLETION_MESSAGES = [
@@ -21,16 +22,18 @@ export const COMPLETION_MESSAGES = [
   "You are proving yourself right.",
   "Control is a habit. You just built it.",
   "This is what strength looks like.",
+  "Well done. Keep rising.",
+  "You chose yourself. That matters.",
 ];
 
 export const TRIGGER_TASKS: TriggerTask[] = [
-  // ─── MANTRAS ───────────────────────────────────────────
+  // ─── MANTRAS ────────────────────────────────────────
   {
     id: "m1",
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "ॐ नमः शिवाय",
-    description: "Sit quietly. Close your eyes. Chant slowly and feel each word.",
+    description: "Sit quietly. Close your eyes. Chant slowly and feel each word resonate in your chest.",
     reps: "× 5 times",
   },
   {
@@ -38,7 +41,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "ॐ नमो भगवते वासुदेवाय",
-    description: "Place your hand on your chest. Breathe in before each chant.",
+    description: "Place your hand on your chest. Breathe in before each chant. Let the words guide your breath.",
     reps: "× 5 times",
   },
   {
@@ -46,7 +49,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "हरे कृष्ण हरे कृष्ण",
-    description: "Repeat slowly. Let the sound calm your mind completely.",
+    description: "Repeat slowly. Let the sound fill the silence in your mind. Keep your eyes closed.",
     reps: "× 10 times",
   },
   {
@@ -54,7 +57,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "ॐ शांति शांति शांति",
-    description: "Breathe out on each 'शांति'. Release tension with every breath.",
+    description: "Breathe out on each 'शांति'. Release all tension with every exhale.",
     reps: "× 10 times",
   },
   {
@@ -70,15 +73,15 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "ॐ गं गणपतये नमः",
-    description: "Close your eyes. Think of obstacles dissolving. Chant steadily.",
-    reps: "× 7 times",
+    description: "Close your eyes. Visualize all obstacles dissolving. Chant steadily and with calm.",
+    reps: "× 5 times",
   },
   {
     id: "m7",
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "राम राम राम राम",
-    description: "Repeat the name softly with every exhale. Feel peace entering.",
+    description: "Repeat the name softly with every exhale. Feel peace entering with each breath.",
     reps: "× 21 times",
   },
   {
@@ -94,7 +97,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "ॐ मणि पद्मे हूँ",
-    description: "Chant each syllable clearly. Feel your mind becoming still.",
+    description: "Chant each syllable clearly. Feel your mind becoming perfectly still.",
     reps: "× 7 times",
   },
   {
@@ -102,27 +105,51 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "mantra",
     categoryLabel: "MANTRA",
     title: "हरे राम हरे राम",
-    description: "Repeat until your mind stops rushing. Let thoughts pass.",
+    description: "Repeat until your mind stops rushing. Let thoughts pass like clouds.",
     reps: "× 10 times",
   },
   {
     id: "m11",
     category: "mantra",
     categoryLabel: "MANTRA",
-    title: "ॐ ऐं सरस्वत्यै नमः",
-    description: "A mantra of clarity and knowledge. Breathe slowly between repeats.",
+    title: "ॐ सूर्याय नमः",
+    description: "A mantra of light and energy. Chant while facing any light source. Feel warmth and clarity.",
     reps: "× 5 times",
   },
   {
     id: "m12",
     category: "mantra",
     categoryLabel: "MANTRA",
+    title: "राधे राधे",
+    description: "Softly, continuously. Let this simple name bring peace. No effort, just surrender.",
+    reps: "× 10 times",
+  },
+  {
+    id: "m13",
+    category: "mantra",
+    categoryLabel: "MANTRA",
+    title: "जय श्री कृष्ण",
+    description: "A simple, joyful invocation. Say it with a light heart. Let it lift your spirit.",
+    reps: "× 10 times",
+  },
+  {
+    id: "m14",
+    category: "mantra",
+    categoryLabel: "MANTRA",
+    title: "ॐ ऐं सरस्वत्यै नमः",
+    description: "A mantra of clarity, focus, and knowledge. Breathe slowly between each repetition.",
+    reps: "× 5 times",
+  },
+  {
+    id: "m15",
+    category: "mantra",
+    categoryLabel: "MANTRA",
     title: "ॐ भूर्भुवः स्वः (गायत्री)",
-    description: "The most powerful purifying mantra. Speak softly, with meaning.",
+    description: "The most powerful purifying mantra. Speak softly, meaning every word.",
     reps: "× 3 times",
   },
 
-  // ─── MOTIVATIONAL DIALOGUES ────────────────────────────
+  // ─── MOTIVATIONAL DIALOGUES ─────────────────────────
   {
     id: "d1",
     category: "dialogue",
@@ -163,7 +190,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Breathe slowly. Stay focused.",
-    description: "Take a slow deep breath in through your nose. Hold for 4 counts. Release through your mouth. Do this 3 times. The urge will weaken.",
+    description: "Take a slow deep breath in through your nose. Hold for 4 counts. Release through your mouth. Do this 3 times. The urge will weaken each time.",
   },
   {
     id: "d7",
@@ -198,7 +225,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "This too shall pass.",
-    description: "The feeling you have right now is temporary. In 20 minutes from now, it will be weaker. In an hour, it may be gone. Ride it out. You've got this.",
+    description: "The feeling you have right now is temporary. In 20 minutes it will be weaker. In an hour, it may be gone completely. Ride it out.",
   },
   {
     id: "d12",
@@ -226,7 +253,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Think of one person who believes in you.",
-    description: "There is at least one person who believes you are capable of more. Maybe they told you. Maybe they didn't. They're watching your journey. Show them something.",
+    description: "There is at least one person who believes you are capable of more. They're watching your journey. Show them something real.",
   },
   {
     id: "d16",
@@ -289,21 +316,21 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Clench your fists. Then release.",
-    description: "Squeeze your fists as tight as you can for 5 seconds. Then fully release. Feel your whole body relax with it. Do this 3 times. The body calms the mind.",
+    description: "Squeeze your fists as tight as you can for 5 seconds. Then fully release. Feel your whole body relax. Do this 3 times. The body calms the mind.",
   },
   {
     id: "d25",
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Count backward from 20.",
-    description: "20... 19... 18... slowly. Focus only on the numbers. By the time you reach 1, the urgency will be slightly lower. Do it twice if needed.",
+    description: "20... 19... 18... slowly. Focus only on the numbers. By the time you reach 1, the urgency will be lower. Do it twice if needed.",
   },
   {
     id: "d26",
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "You deserve better than this urge.",
-    description: "Not as punishment or shame. But because your future self deserves freedom. You deserve to live without being controlled by something that gives nothing back.",
+    description: "Your future self deserves freedom. You deserve to live without being controlled by something that gives nothing back.",
   },
   {
     id: "d27",
@@ -317,14 +344,14 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Look at something far away.",
-    description: "Find a window. Look at the farthest thing you can see. Focus on it for 30 seconds. This shifts your nervous system out of fight-or-flight mode. Try it.",
+    description: "Find a window. Look at the farthest thing you can see. Focus on it for 30 seconds. This shifts your nervous system out of fight-or-flight mode.",
   },
   {
     id: "d29",
     category: "dialogue",
     categoryLabel: "MESSAGE",
-    title: "What would you tell a younger version of yourself?",
-    description: "If a younger you was struggling right now, what would you say? Say it to yourself. You still need to hear those words.",
+    title: "What would you tell a younger you?",
+    description: "If a younger version of you was struggling right now, what would you say? Say it to yourself. You still need to hear those words.",
   },
   {
     id: "d30",
@@ -345,7 +372,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Stand up and stretch your arms wide.",
-    description: "Right now. Stand tall, feet shoulder-width apart. Stretch both arms wide. Breathe in deep. Hold for 3 seconds. Exhale. Repeat 3 times. Power posture works.",
+    description: "Right now. Stand tall, feet apart. Stretch both arms wide. Breathe in deep. Hold 3 seconds. Exhale. Repeat 3 times. Power posture works.",
   },
   {
     id: "d33",
@@ -373,44 +400,44 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "dialogue",
     categoryLabel: "MESSAGE",
     title: "Recall your biggest reason.",
-    description: "What is the one reason you started this journey? Health? Family? Self-respect? Hold that reason in your mind. Feel it. Let it be louder than the urge.",
+    description: "What is the one reason you started this journey? Health? Family? Self-respect? Hold that reason in your mind. Let it be louder than the urge.",
   },
   {
     id: "d37",
     category: "dialogue",
     categoryLabel: "MESSAGE",
-    title: "You are not starting over. You are continuing.",
-    description: "Even a stumble is part of the path forward. You have not erased your progress. You have learned something. Use it. Keep going.",
+    title: "Tiny wins matter.",
+    description: "Resisting for 5 more minutes is a win. Don't try to win forever. Just win the next 5 minutes. Then reassess.",
   },
   {
     id: "d38",
     category: "dialogue",
     categoryLabel: "MESSAGE",
-    title: "Tiny wins matter.",
-    description: "Resisting for 5 more minutes is a win. Resisting for 10 is a bigger win. Don't try to win forever. Just win the next 5 minutes. Then reassess.",
+    title: "This version of you is worth protecting.",
+    description: "The person who installed this app, who cares enough to try — that person deserves your protection. Don't let a moment erase who you are becoming.",
   },
   {
     id: "d39",
     category: "dialogue",
     categoryLabel: "MESSAGE",
-    title: "This version of you is worth protecting.",
-    description: "The person who downloaded this app, who cares enough to try — that person deserves your protection. Don't let a moment of weakness erase who you are becoming.",
+    title: "Tap the floor with your feet 10 times.",
+    description: "Both feet, alternating, slowly on the floor. 10 taps. Grounding your body this way can interrupt an urge cycle instantly.",
   },
   {
     id: "d40",
     category: "dialogue",
     categoryLabel: "MESSAGE",
-    title: "Tap the floor with your feet 10 times.",
-    description: "Seriously. Both feet, alternating, slowly on the floor. 10 taps. It sounds simple but grounding your body this way can interrupt an anxiety or urge cycle instantly.",
+    title: "You chose to open this app.",
+    description: "That choice — picking up the phone and coming here instead of giving in — that is already a victory. The hardest part is already behind you.",
   },
 
-  // ─── BRAIN TASKS ────────────────────────────────────────
+  // ─── BRAIN TASKS ────────────────────────────────────
   {
     id: "b1",
     category: "brain",
     categoryLabel: "BRAIN TASK",
     title: "Simple Math Challenge",
-    description: "Multiply these in your head:\n13 × 7 = ?\n24 × 5 = ?\n17 × 8 = ?\n\nDo not use a calculator. Work through each one slowly. Your mind is busy. The urge has less space.",
+    description: "Multiply these in your head:\n13 × 7 = ?\n24 × 5 = ?\n17 × 8 = ?\n34 × 3 = ?\n\nDo not use a calculator. Work through each one slowly.",
     duration: "3 minutes",
   },
   {
@@ -425,7 +452,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     id: "b3",
     category: "brain",
     categoryLabel: "BRAIN TASK",
-    title: "Read One Page",
+    title: "Reading Challenge",
     description: "Pick up any book, article, or anything written near you. Read one full page carefully. Understand every sentence. Think about what you read.\n\nJust one page. Fully present.",
     duration: "5 minutes",
   },
@@ -434,19 +461,27 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "brain",
     categoryLabel: "BRAIN TASK",
     title: "Memory Recall Exercise",
-    description: "Close your eyes. Try to recall:\n\n• Every person you spoke to yesterday\n• What you ate for the last 2 meals\n• 5 things you can see right now, with eyes closed\n\nOpen your eyes and check how many you got right.",
+    description: "Close your eyes. Try to recall:\n\n• Every person you spoke to yesterday\n• What you ate for the last 2 meals\n• 3 colors you saw today\n• 5 sounds you can hear right now\n\nOpen your eyes and check.",
     duration: "3 minutes",
   },
   {
     id: "b5",
     category: "brain",
     categoryLabel: "BRAIN TASK",
-    title: "Play Chess",
-    description: "Open a chess app or play in your mind. Focus on strategy, not speed. Plan 3 moves ahead.\n\nIf no chess app available, visualize the board and plan an opening sequence from memory.",
-    duration: "10 minutes",
+    title: "Word Association Game",
+    description: "Say a random word out loud.\nThen quickly say the first word it makes you think of.\nKeep going — 20 words in a chain, each connected to the last.\n\nExample: Water → Ocean → Blue → Sky → Cloud...",
+    duration: "2 minutes",
   },
   {
     id: "b6",
+    category: "brain",
+    categoryLabel: "BRAIN TASK",
+    title: "Focus Counting",
+    description: "Count slowly from 1 to 200 in your head.\nIf you lose track or get distracted, start over from 1.\n\nThe goal is 200 without interruption. Your mind must stay completely focused.",
+    duration: "3–5 minutes",
+  },
+  {
+    id: "b7",
     category: "brain",
     categoryLabel: "BRAIN TASK",
     title: "Write Down 3 Things",
@@ -454,29 +489,29 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     duration: "4 minutes",
   },
   {
-    id: "b7",
-    category: "brain",
-    categoryLabel: "BRAIN TASK",
-    title: "Count Prime Numbers",
-    description: "Starting from 2, list as many prime numbers as you can from memory:\n2, 3, 5, 7, 11, 13...\n\nGo as far as you can without looking it up. Try to reach 50.",
-    duration: "3 minutes",
-  },
-  {
     id: "b8",
     category: "brain",
     categoryLabel: "BRAIN TASK",
     title: "Plan Your Tomorrow",
-    description: "In your notes, write out your complete plan for tomorrow:\n\n• Morning routine\n• 3 main tasks\n• Evening activity\n\nBe specific. A planned day has no room for idle triggers.",
+    description: "In your notes, write your complete plan for tomorrow:\n\n• Morning routine\n• 3 main tasks for the day\n• Evening activity\n\nBe specific. A planned day leaves no room for idle triggers.",
     duration: "5 minutes",
   },
+  {
+    id: "b9",
+    category: "brain",
+    categoryLabel: "BRAIN TASK",
+    title: "Chess",
+    description: "Open a chess app and play one game — or visualize a game in your head.\n\nFocus on strategy. Plan 3 moves ahead. Think about your opponent's position.\n\nChess requires total mental presence. There is no room for anything else.",
+    duration: "10 minutes",
+  },
 
-  // ─── FOCUS TASKS ────────────────────────────────────────
+  // ─── FOCUS TASKS ────────────────────────────────────
   {
     id: "f1",
     category: "focus",
     categoryLabel: "FOCUS",
     title: "Deep Breathing — 4-7-8",
-    description: "Breathe in through your nose for 4 counts.\nHold your breath for 7 counts.\nExhale slowly through your mouth for 8 counts.\n\nRepeat 4 full cycles. This activates your parasympathetic nervous system and calms the urge.",
+    description: "Breathe IN through your nose for 4 counts.\nHold your breath for 7 counts.\nExhale slowly through your mouth for 8 counts.\n\nRepeat 4 full cycles. This activates your parasympathetic nervous system.",
     reps: "4 cycles",
   },
   {
@@ -484,7 +519,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "focus",
     categoryLabel: "FOCUS",
     title: "Drink Water Slowly",
-    description: "Get a full glass of cold water. Sit down. Drink it very slowly — one small sip every 10 seconds.\n\nFeel the water. Feel your throat. Feel your stomach. Fully present. Urges struggle to survive presence.",
+    description: "Get a full glass of cold water. Sit down. Drink it very slowly — one small sip every 10 seconds.\n\nFeel the water. Feel your throat. Feel your stomach. Fully present.",
     duration: "3 minutes",
   },
   {
@@ -500,15 +535,15 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "focus",
     categoryLabel: "FOCUS",
     title: "Box Breathing",
-    description: "Breathe IN for 4 counts.\nHOLD for 4 counts.\nBreathe OUT for 4 counts.\nHOLD for 4 counts.\n\nRepeat 6 times. Used by athletes, military, and meditators to restore calm under pressure.",
+    description: "Breathe IN for 4 counts.\nHOLD for 4 counts.\nBreathe OUT for 4 counts.\nHOLD for 4 counts.\n\nRepeat 6 times. Used by athletes and military to restore calm under pressure.",
     reps: "6 cycles",
   },
   {
     id: "f5",
     category: "focus",
     categoryLabel: "FOCUS",
-    title: "Body Scan Meditation",
-    description: "Sit or lie down. Close your eyes. Start from the top of your head. Slowly scan down through your body. Notice any tension. Consciously relax each area as you go.\n\nHead → neck → shoulders → arms → chest → stomach → legs → feet.",
+    title: "Body Scan",
+    description: "Sit or lie down. Close your eyes. Start from the top of your head and slowly scan down.\nNotice any tension. Consciously relax each area.\n\nHead → neck → shoulders → arms → chest → stomach → legs → feet.",
     duration: "5 minutes",
   },
   {
@@ -516,7 +551,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "focus",
     categoryLabel: "FOCUS",
     title: "Tidy One Small Space",
-    description: "Pick one small area near you — your desk, bedside table, or a shelf. Arrange it neatly. Put things back in their place. Clean surfaces.\n\nPhysical order creates mental order. And it takes just enough energy to break the cycle.",
+    description: "Pick one small area near you — your desk, bedside table, or a shelf. Arrange it neatly. Clean surfaces.\n\nPhysical order creates mental order. This simple act can break the pattern.",
     duration: "5 minutes",
   },
   {
@@ -524,25 +559,25 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "focus",
     categoryLabel: "FOCUS",
     title: "Sit in Complete Silence",
-    description: "No phone. No music. No talking. Set a timer for 3 minutes and sit in complete silence.\n\nDon't try to stop thoughts. Just watch them pass like clouds. You are the sky — not the weather.",
+    description: "No phone. No music. No talking. Set a timer for 3 minutes and sit in complete silence.\n\nDon't try to stop thoughts. Just watch them pass like clouds. You are the sky.",
     duration: "3 minutes",
   },
   {
     id: "f8",
     category: "focus",
     categoryLabel: "FOCUS",
-    title: "Hold a Cold Object",
-    description: "Find something cold — an ice cube, a cold water bottle, a metal object from the fridge.\n\nHold it in your hand. Focus entirely on the sensation. Cold is one of the fastest ways to interrupt an urge cycle through sensory distraction.",
-    duration: "2 minutes",
+    title: "Stretching",
+    description: "Stand up. Do this sequence slowly:\n\n• Neck rolls — 3 each direction\n• Shoulder rolls — 5 each direction\n• Arms across chest — 30 sec each\n• Forward bend — breathe 5 times\n\nStretch slowly. Feel each muscle release.",
+    duration: "5 minutes",
   },
 
-  // ─── OUTDOOR / PHYSICAL ─────────────────────────────────
+  // ─── OUTDOOR / PHYSICAL ─────────────────────────────
   {
     id: "o1",
     category: "outdoor",
     categoryLabel: "PHYSICAL",
     title: "Walk Outside",
-    description: "Go outside right now. Walk without your phone in your hand. No headphones.\n\nJust walk and observe. Look at trees, sky, people, details you normally miss. 5 minutes of this will shift your entire mental state.",
+    description: "Go outside right now. Walk without your phone in your hand. No headphones.\n\nJust walk and observe. Look at trees, sky, people, details you normally miss.\n\n5–10 minutes of this will shift your entire mental state.",
     duration: "5–10 minutes",
   },
   {
@@ -550,7 +585,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "outdoor",
     categoryLabel: "PHYSICAL",
     title: "20 Pushups",
-    description: "Drop and do 20 pushups. Right now. No equipment needed.\n\nIf 20 is too many, do 10. If 10 is too many, do 5. Physical exertion releases chemicals that compete directly with the urge. Your body will thank you.",
+    description: "Drop and do 20 pushups. Right now. No equipment needed.\n\nIf 20 is too many, do 10. If 10 is too many, do 5.\n\nPhysical exertion releases chemicals that compete directly with urges.",
     reps: "20 pushups",
   },
   {
@@ -566,7 +601,7 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "outdoor",
     categoryLabel: "PHYSICAL",
     title: "30 Jumping Jacks",
-    description: "Stand up. Do 30 jumping jacks at a steady pace. Count each one out loud.\n\nHeart rate up. Blood moving. Dopamine shifting. The body has a short memory — give it a better stimulus.",
+    description: "Stand up. Do 30 jumping jacks at a steady pace. Count each one out loud.\n\nHeart rate up. Blood moving. Dopamine shifting. Give your body a better stimulus.",
     reps: "30 jumping jacks",
   },
   {
@@ -574,24 +609,34 @@ export const TRIGGER_TASKS: TriggerTask[] = [
     category: "outdoor",
     categoryLabel: "PHYSICAL",
     title: "Look at the Sky for 2 Minutes",
-    description: "Go to a window or step outside. Look up at the sky. Observe clouds, light, birds — whatever is there.\n\nThe sky has no agenda. It is simply there. 2 minutes of looking up is a reset most people never use.",
+    description: "Go to a window or step outside. Look up at the sky. Observe clouds, light, birds — whatever is there.\n\nThe sky has no agenda. 2 minutes of looking up is a reset most people never use.",
     duration: "2 minutes",
   },
+
+  // ─── MINI GAMES ─────────────────────────────────────
   {
-    id: "o6",
-    category: "outdoor",
-    categoryLabel: "PHYSICAL",
-    title: "Slow Neck Rolls",
-    description: "Drop your chin to your chest. Slowly roll your head to the right — ear to shoulder. Then back. Then left. Then forward again.\n\nDo 3 full slow circles each direction. Tension lives in the neck. Release it.",
-    reps: "3 circles each side",
+    id: "game-pattern",
+    category: "game",
+    categoryLabel: "MINI GAME",
+    title: "Pattern Recall",
+    description: "A pattern of tiles will flash for 3 seconds. Memorize it. Then recreate it from memory.\n\nThis forces your mind away from the urge and into full concentration.",
+    interactive: true,
   },
   {
-    id: "o7",
-    category: "outdoor",
-    categoryLabel: "PHYSICAL",
-    title: "Breathe Outside Air",
-    description: "Open a window fully or step outside. Breathe 10 slow, deep breaths of fresh air.\n\nNotice the temperature. The smell. The sound. This simple act reconnects you with the real world and away from the mental trap.",
-    reps: "10 deep breaths",
+    id: "game-quick-puzzle",
+    category: "game",
+    categoryLabel: "MIND PUZZLE",
+    title: "Quick Puzzle",
+    description: "Answer these without thinking too long:\n\n1. A man walks into a room. He has no hair. Is he bald?\n2. What has hands but cannot clap?\n3. The more you take, the more you leave behind. What is it?\n4. I speak without a mouth. What am I?\n\nAnswers: Yes. A clock. Footsteps. An echo.\n\nDid you get them? Great. Your mind just worked hard.",
+    duration: "3 minutes",
+  },
+  {
+    id: "game-memory",
+    category: "game",
+    categoryLabel: "MEMORY CHALLENGE",
+    title: "Memory Challenge",
+    description: "Read this list once. Then close your eyes and repeat as many as you can:\n\nOrange, Mountain, Tuesday, Lamp, River, Courage, Blue, Thunder, Peace, Silence\n\nHow many did you remember?\n• 5+ = Good\n• 7+ = Strong\n• 9+ = Excellent\n\nTry again. Beat your score.",
+    duration: "3 minutes",
   },
 ];
 
@@ -609,5 +654,6 @@ export function getCategoryColor(category: TriggerCategory): string {
     case "brain": return "#56A3A6";
     case "focus": return "#F4A261";
     case "outdoor": return "#6BCB77";
+    case "game": return "#FF6B35";
   }
 }

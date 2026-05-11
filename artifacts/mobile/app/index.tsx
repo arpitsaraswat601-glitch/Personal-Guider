@@ -15,7 +15,7 @@ export default function Index() {
   }
 
   if (isOnboarded) {
-    return <Redirect href="/(tabs)/" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return <Redirect href="/onboarding" />;

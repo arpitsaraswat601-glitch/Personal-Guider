@@ -27,7 +27,7 @@ export default function RelapseScreen() {
     setLoading(true);
     await handleRelapse(continueFromPrevious);
     setLoading(false);
-    router.replace("/(tabs)/");
+    router.replace("/(tabs)");
   };
 
   return (

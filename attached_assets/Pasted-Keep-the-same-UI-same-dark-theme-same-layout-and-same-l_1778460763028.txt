@@ -1,0 +1,178 @@
+Keep the same UI, same dark theme, same layout, and same lightweight performance.
+
+Only improve these small things carefully without redesigning the app.
+
+==================================================
+⏱️ TIMER IMPROVEMENTS
+==================================================
+
+Make the timer:
+- completely stable
+- no animation
+- no pulsing
+- no moving effects
+- no glow animation loops
+
+The timer should feel:
+- clean
+- calm
+- premium
+- minimal
+
+Use:
+- bright pure white color
+- strong visibility
+- easy readability from distance
+- larger timer text size
+
+The timer should become the main focus of the center circle.
+
+Keep the background dark and premium.
+
+==================================================
+🌐 LANGUAGE OPTION
+==================================================
+
+Inside Settings:
+Add a lightweight Language option.
+
+Languages:
+- English
+- Hindi
+
+Requirements:
+- Save selected language locally
+- Switch UI text instantly
+- Keep implementation simple and lightweight
+- No external translation APIs
+
+If Hindi selected:
+Show Hindi UI text where available.
+
+If English selected:
+Show English UI text.
+
+==================================================
+👤 NAME INPUT IMPROVEMENT
+==================================================
+
+During onboarding:
+Use 2 separate clean input fields:
+
+- First Name
+- Second Name
+
+Requirements:
+- premium dark styling
+- smooth mobile layout
+- lightweight
+- clean spacing
+- simple validation
+
+==================================================
+🛡️ TRIGGER REMOVER ACTIVITIES
+==================================================
+
+Add lightweight focus-refresh activities:
+
+- Memory challenge
+- Focus counting
+- Quick puzzle
+- Word game
+- Pattern game
+- Simple math challenge
+- Outdoor walk
+- Stretching
+- Breathing task
+- Reading challenge
+
+Add only these lightweight mini games:
+- Chess
+- Pattern Recall
+
+Do NOT add:
+- Sudoku
+- Tic Tac Toe
+- Number Match
+- Math Sprint
+- Memory Flip
+- Any extra games
+
+Requirements:
+- offline-friendly
+- lightweight logic
+- simple UI
+- no heavy graphics
+- smooth performance
+
+==================================================
+🕉️ ADD MORE SHORT MANTRAS
+==================================================
+
+Add peaceful short mantra options:
+
+- “हरे राम हरे राम” ×10
+- “ॐ गं गणपतये नमः” ×5
+- “राधे राधे” ×10
+- “जय श्री कृष्ण” ×10
+- “ॐ सूर्याय नमः” ×5
+
+Keep all mantras:
+- short
+- calm
+- peaceful
+- easy to repeat
+- cleanly displayed
+
+==================================================
+🖼️ CUSTOM APP LOGO
+==================================================
+
+I will provide a custom image later.
+
+Use that image as:
+- app logo
+- splash screen logo
+- favicon
+- Android app icon
+
+Requirements:
+- optimize image properly
+- keep high quality
+- dark-theme friendly
+- adaptive Android icon support
+- lightweight optimization
+
+==================================================
+⚡ PWA + PERFORMANCE OPTIMIZATION
+==================================================
+
+Make this project fully PWA compatible for PWABuilder.
+
+Add:
+- manifest.json
+- service worker
+- offline caching
+- installable support
+- Android app icons
+- splash screen
+- standalone display mode
+- mobile optimization
+- proper theme colors
+- favicon and app metadata
+
+Fix all PWA audit issues and make it pass PWABuilder requirements.
+
+==================================================
+📱 FINAL REQUIREMENTS
+==================================================
+
+- No heavy animations
+- No redesign
+- No unnecessary libraries
+- Keep smooth performance
+- Keep premium dark aesthetic
+- Everything must remain lightweight
+- Optimize carefully for Android mobile devices
+- Maintain fast loading speed
+- Preserve current app structure and simplicity

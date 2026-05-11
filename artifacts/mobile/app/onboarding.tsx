@@ -1,6 +1,7 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,52 +11,66 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { UserProfile, UserType, useGuider } from "@/context/GuiderContext";
 import { useColors } from "@/hooks/useColors";
+import { useLang } from "@/context/LanguageContext";
 
 type Step = 0 | 1 | 2;
 
-const USER_TYPES: { type: UserType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; sub: string }[] = [
-  { type: "student", label: "Student", icon: "school", sub: "Study now. Success is yours." },
-  { type: "worker", label: "Young Worker", icon: "briefcase", sub: "Work hard while others waste time." },
-  { type: "child", label: "Child", icon: "sprout", sub: "Small discipline builds a strong future." },
+const USER_TYPES: {
+  type: UserType;
+  labelKey: "onboardStudent" | "onboardWorker" | "onboardChild";
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  sub: string;
+}[] = [
+  { type: "student", labelKey: "onboardStudent", icon: "school", sub: "Study now. Success is yours." },
+  { type: "worker", labelKey: "onboardWorker", icon: "briefcase", sub: "Work hard while others waste time." },
+  { type: "child", labelKey: "onboardChild", icon: "sprout", sub: "Small discipline builds a strong future." },
 ];
 
 export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { completeOnboarding } = useGuider();
+  const { t } = useLang();
 
   const [step, setStep] = useState<Step>(0);
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [age, setAge] = useState("");
   const [userType, setUserType] = useState<UserType | null>(null);
 
+  const lastNameRef = useRef<TextInput>(null);
+
+  const displayName = firstName.trim();
+
   const handleNext = async () => {
-    if (step === 0 && name.trim()) {
+    if (step === 0 && firstName.trim()) {
       setStep(1);
     } else if (step === 1 && age.trim()) {
       setStep(2);
     } else if (step === 2 && userType) {
+      const fullName = lastName.trim()
+        ? `${firstName.trim()} ${lastName.trim()}`
+        : firstName.trim();
       const profile: UserProfile = {
-        name: name.trim(),
+        name: fullName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         age: age.trim(),
         userType,
       };
       await completeOnboarding(profile);
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)");
     }
   };
 
   const canProceed =
-    (step === 0 && name.trim().length > 0) ||
+    (step === 0 && firstName.trim().length > 0) ||
     (step === 1 && age.trim().length > 0) ||
     (step === 2 && userType !== null);
 
@@ -74,16 +89,20 @@ export default function OnboardingScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
+        {/* Header / Logo */}
+        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
           <View style={[styles.logoRing, { borderColor: colors.primary }]}>
-            <MaterialCommunityIcons name="shield-star" size={32} color={colors.primary} />
+            <Image
+              source={require("../assets/images/logo.jpg")}
+              style={styles.logoImage}
+              resizeMode="cover"
+            />
           </View>
-          <Text style={[styles.appName, { color: colors.foreground }]}>Personal Guider</Text>
-          <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
-            Your silent recovery companion
-          </Text>
+          <Text style={[styles.appName, { color: colors.foreground }]}>{t("appName")}</Text>
+          <Text style={[styles.tagline, { color: colors.mutedForeground }]}>{t("appTagline")}</Text>
         </Animated.View>
 
+        {/* Step dots */}
         <View style={styles.steps}>
           {[0, 1, 2].map((s) => (
             <View
@@ -99,48 +118,111 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <Animated.View entering={FadeInUp.duration(500).delay(200)} style={styles.form}>
+        {/* Form */}
+        <Animated.View entering={FadeInUp.duration(400).delay(150)} style={styles.form}>
+          {/* Step 0 — Name */}
           {step === 0 && (
             <View style={styles.fieldGroup}>
               <Text style={[styles.question, { color: colors.foreground }]}>
-                What should I call you?
+                {t("onboardNameQ")}
               </Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-                placeholder="Your name"
-                placeholderTextColor={colors.mutedForeground}
-                value={name}
-                onChangeText={setName}
-                autoFocus
-                returnKeyType="next"
-                onSubmitEditing={handleNext}
-              />
+              <View style={styles.nameRow}>
+                {/* First Name */}
+                <View style={styles.nameField}>
+                  <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                    {t("onboardFirstName")}
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: firstName.trim() ? colors.primary : colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    placeholder={t("onboardFirstName")}
+                    placeholderTextColor={colors.mutedForeground}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    autoFocus
+                    returnKeyType="next"
+                    onSubmitEditing={() => lastNameRef.current?.focus()}
+                    autoCapitalize="words"
+                  />
+                </View>
+                {/* Last Name */}
+                <View style={styles.nameField}>
+                  <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                    {t("onboardLastName")}
+                  </Text>
+                  <TextInput
+                    ref={lastNameRef}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: lastName.trim() ? colors.primary + "80" : colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    placeholder={t("onboardLastName")}
+                    placeholderTextColor={colors.mutedForeground}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    returnKeyType="done"
+                    onSubmitEditing={handleNext}
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
+              {firstName.trim().length > 0 && (
+                <Animated.Text
+                  entering={FadeInDown.duration(300)}
+                  style={[styles.previewName, { color: colors.primary }]}
+                >
+                  {lastName.trim()
+                    ? `${firstName.trim()} ${lastName.trim()}`
+                    : firstName.trim()}
+                </Animated.Text>
+              )}
             </View>
           )}
 
+          {/* Step 1 — Age */}
           {step === 1 && (
             <View style={styles.fieldGroup}>
               <Text style={[styles.question, { color: colors.foreground }]}>
-                How old are you, {name}?
+                {t("onboardAgeQ")} {displayName}?
               </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-                placeholder="Your age"
+                style={[
+                  styles.input,
+                  styles.inputLarge,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: age.trim() ? colors.primary : colors.border,
+                    color: colors.foreground,
+                  },
+                ]}
+                placeholder={t("onboardAgeInput")}
                 placeholderTextColor={colors.mutedForeground}
                 value={age}
                 onChangeText={setAge}
                 keyboardType="numeric"
                 autoFocus
-                returnKeyType="next"
+                returnKeyType="done"
                 onSubmitEditing={handleNext}
+                maxLength={2}
               />
             </View>
           )}
 
+          {/* Step 2 — User Type */}
           {step === 2 && (
             <View style={styles.fieldGroup}>
               <Text style={[styles.question, { color: colors.foreground }]}>
-                Who are you?
+                {t("onboardTypeQ")}
               </Text>
               <View style={styles.typeList}>
                 {USER_TYPES.map((ut) => (
@@ -150,19 +232,26 @@ export default function OnboardingScreen() {
                       styles.typeCard,
                       {
                         backgroundColor: colors.card,
-                        borderColor: userType === ut.type ? colors.primary : colors.border,
+                        borderColor:
+                          userType === ut.type ? colors.primary : colors.border,
                       },
                     ]}
                     onPress={() => setUserType(ut.type)}
                   >
                     <MaterialCommunityIcons
                       name={ut.icon}
-                      size={28}
-                      color={userType === ut.type ? colors.primary : colors.mutedForeground}
+                      size={26}
+                      color={
+                        userType === ut.type ? colors.primary : colors.mutedForeground
+                      }
                     />
                     <View style={styles.typeText}>
-                      <Text style={[styles.typeLabel, { color: colors.foreground }]}>{ut.label}</Text>
-                      <Text style={[styles.typeSub, { color: colors.mutedForeground }]}>{ut.sub}</Text>
+                      <Text style={[styles.typeLabel, { color: colors.foreground }]}>
+                        {t(ut.labelKey)}
+                      </Text>
+                      <Text style={[styles.typeSub, { color: colors.mutedForeground }]}>
+                        {ut.sub}
+                      </Text>
                     </View>
                     {userType === ut.type && (
                       <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
@@ -174,16 +263,20 @@ export default function OnboardingScreen() {
           )}
         </Animated.View>
 
+        {/* CTA Button */}
         <Pressable
           style={[
             styles.nextBtn,
-            { backgroundColor: canProceed ? colors.primary : colors.muted, opacity: canProceed ? 1 : 0.5 },
+            {
+              backgroundColor: canProceed ? colors.primary : colors.muted,
+              opacity: canProceed ? 1 : 0.45,
+            },
           ]}
           onPress={handleNext}
           disabled={!canProceed}
         >
           <Text style={[styles.nextText, { color: colors.primaryForeground }]}>
-            {step < 2 ? "Continue" : "Begin My Journey"}
+            {step < 2 ? t("onboardContinue") : t("onboardBegin")}
           </Text>
           <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
         </Pressable>
@@ -193,33 +286,37 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
   scroll: {
-    paddingHorizontal: 24,
-    gap: 32,
+    paddingHorizontal: 22,
+    gap: 28,
     flexGrow: 1,
   },
   header: {
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   logoRing: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 1.5,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
   appName: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "800",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 13,
   },
   steps: {
     flexDirection: "row",
@@ -236,29 +333,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldGroup: {
-    gap: 16,
+    gap: 14,
   },
   question: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
-    lineHeight: 30,
+    lineHeight: 28,
+  },
+  nameRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  nameField: {
+    flex: 1,
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    letterSpacing: 0.5,
+    paddingLeft: 2,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 17,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+  },
+  inputLarge: {
+    fontSize: 22,
+    textAlign: "center",
+    paddingVertical: 18,
+    fontWeight: "700",
+    letterSpacing: 2,
+  },
+  previewName: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   typeList: {
-    gap: 12,
+    gap: 10,
   },
   typeCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    padding: 16,
-    borderRadius: 14,
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1.5,
   },
   typeText: {
@@ -266,12 +390,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   typeLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
   },
   typeSub: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
   },
   nextBtn: {
     flexDirection: "row",

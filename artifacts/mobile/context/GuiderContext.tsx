@@ -13,7 +13,9 @@ import { TriggerTask } from "@/data/triggers";
 export type UserType = "student" | "worker" | "child";
 
 export interface UserProfile {
-  name: string;
+  name: string;       // full display name
+  firstName?: string; // given name (set from onboarding v2+)
+  lastName?: string;  // family name (optional)
   age: string;
   userType: UserType;
 }
@@ -124,7 +126,6 @@ interface GuiderState {
   unlockedEmblems: EmblemRecord[];
   powerScore: number;
   newlyUnlockedStage: Stage | null;
-  // Trigger task system
   activeTriggerTask: TriggerTask | null;
   triggerTaskAccepted: boolean;
 }
@@ -149,7 +150,6 @@ interface GuiderContextType extends GuiderState {
 const GuiderContext = createContext<GuiderContextType | null>(null);
 
 const STORAGE_KEY = "guider_state_v4";
-// Legacy key — migrate if found
 const LEGACY_KEY = "guider_state_v3";
 
 function generateId(): string {
@@ -157,9 +157,7 @@ function generateId(): string {
 }
 
 function getDaysSince(dateStr: string): number {
-  const start = new Date(dateStr);
-  const now = new Date();
-  return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function getSecondsSince(dateStr: string): number {
@@ -193,18 +191,14 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GuiderState>(INITIAL_STATE);
   const prevStageIdRef = useRef<number>(1);
 
-  const saveState = useCallback(async (newState: GuiderState) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-    } catch (_) {}
+  const saveState = useCallback(async (s: GuiderState) => {
+    try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (_) {}
   }, []);
 
-  // Load state on mount, migrating from legacy key if needed
   useEffect(() => {
     (async () => {
       try {
         let raw = await AsyncStorage.getItem(STORAGE_KEY);
-        // Migrate from v3 if v4 not found
         if (!raw) {
           raw = await AsyncStorage.getItem(LEGACY_KEY);
           if (raw) await AsyncStorage.removeItem(LEGACY_KEY);
@@ -221,7 +215,6 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
           setState(merged);
           const days = merged.streakStart ? getDaysSince(merged.streakStart) : 0;
           prevStageIdRef.current = getStageForDays(days).id;
-          // Re-persist under new key
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         }
       } catch (_) {}
@@ -229,7 +222,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Stage unlock checker — every 60s
+  // Stage unlock checker — runs every 60s
   useEffect(() => {
     if (!state.isActive || !state.streakStart || !state.timerStarted) return;
     const interval = setInterval(() => {
@@ -242,15 +235,12 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
         if (currentStage.id > prevStageIdRef.current) {
           const alreadyUnlocked = prev.unlockedEmblems.some((e) => e.stageId === currentStage.id);
           if (!alreadyUnlocked) {
-            newEmblems = [
-              ...newEmblems,
-              {
-                stageId: currentStage.id,
-                stageName: currentStage.name,
-                unlockedAt: new Date().toISOString(),
-                totalDays: days,
-              },
-            ];
+            newEmblems = [...newEmblems, {
+              stageId: currentStage.id,
+              stageName: currentStage.name,
+              unlockedAt: new Date().toISOString(),
+              totalDays: days,
+            }];
             newlyUnlockedStage = currentStage;
           }
           prevStageIdRef.current = currentStage.id;
@@ -269,15 +259,12 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [state.isActive, state.streakStart, state.timerStarted, saveState]);
 
-  const completeOnboarding = useCallback(
-    async (profile: UserProfile) => {
-      const next: GuiderState = { ...INITIAL_STATE, profile, isOnboarded: true };
-      prevStageIdRef.current = 1;
-      setState(next);
-      await saveState(next);
-    },
-    [saveState]
-  );
+  const completeOnboarding = useCallback(async (profile: UserProfile) => {
+    const next: GuiderState = { ...INITIAL_STATE, profile, isOnboarded: true };
+    prevStageIdRef.current = 1;
+    setState(next);
+    await saveState(next);
+  }, [saveState]);
 
   const startTimer = useCallback(async () => {
     const now = new Date().toISOString();
@@ -301,7 +288,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
 
   const stopTimer = useCallback(async () => {
     setState((prev) => {
-      const next: GuiderState = { ...prev, timerStarted: false };
+      const next = { ...prev, timerStarted: false };
       saveState(next);
       return next;
     });
@@ -321,35 +308,32 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     return getStageForDays(getCurrentStreak());
   }, [getCurrentStreak]);
 
-  const handleRelapse = useCallback(
-    async (continueFromPrevious: boolean) => {
-      const now = new Date().toISOString();
-      const currentDays = getCurrentStreak();
-      const currentStage = getCurrentStage();
-      setState((prev) => {
-        const updatedHistory = prev.streakHistory.map((r, i) =>
-          i === prev.streakHistory.length - 1 && !r.endDate
-            ? { ...r, endDate: now, days: currentDays, peakStageId: currentStage.id }
-            : r
-        );
-        const newStart = continueFromPrevious && prev.streakStart ? prev.streakStart : now;
-        const next: GuiderState = {
-          ...prev,
-          timerStarted: true,
-          streakStart: newStart,
-          isActive: true,
-          streakHistory: continueFromPrevious
-            ? updatedHistory
-            : [...updatedHistory, { id: generateId(), startDate: now, days: 0, peakStageId: 1 }],
-          newlyUnlockedStage: null,
-        };
-        saveState(next);
-        return next;
-      });
-      prevStageIdRef.current = continueFromPrevious ? getStageForDays(currentDays).id : 1;
-    },
-    [getCurrentStreak, getCurrentStage, saveState]
-  );
+  const handleRelapse = useCallback(async (continueFromPrevious: boolean) => {
+    const now = new Date().toISOString();
+    const currentDays = getCurrentStreak();
+    const currentStage = getCurrentStage();
+    setState((prev) => {
+      const updatedHistory = prev.streakHistory.map((r, i) =>
+        i === prev.streakHistory.length - 1 && !r.endDate
+          ? { ...r, endDate: now, days: currentDays, peakStageId: currentStage.id }
+          : r
+      );
+      const newStart = continueFromPrevious && prev.streakStart ? prev.streakStart : now;
+      const next: GuiderState = {
+        ...prev,
+        timerStarted: true,
+        streakStart: newStart,
+        isActive: true,
+        streakHistory: continueFromPrevious
+          ? updatedHistory
+          : [...updatedHistory, { id: generateId(), startDate: now, days: 0, peakStageId: 1 }],
+        newlyUnlockedStage: null,
+      };
+      saveState(next);
+      return next;
+    });
+    prevStageIdRef.current = continueFromPrevious ? getStageForDays(currentDays).id : 1;
+  }, [getCurrentStreak, getCurrentStage, saveState]);
 
   const dismissEmblemUnlock = useCallback(() => {
     setState((prev) => {
@@ -359,7 +343,6 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     });
   }, [saveState]);
 
-  // Logout: clears ALL data → fresh start
   const logout = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
@@ -369,31 +352,19 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
     setState(INITIAL_STATE);
   }, []);
 
-  // Restore account: keeps existing state, just used for navigation decision
-  const restoreAccount = useCallback(() => {
-    // State is already loaded from storage — nothing to do
-    // The calling screen will navigate back to tabs
-  }, []);
+  const restoreAccount = useCallback(() => {}, []);
 
-  // Trigger task methods
-  const acceptTriggerTask = useCallback(
-    async (task: TriggerTask) => {
-      setState((prev) => {
-        const next: GuiderState = {
-          ...prev,
-          activeTriggerTask: task,
-          triggerTaskAccepted: true,
-        };
-        saveState(next);
-        return next;
-      });
-    },
-    [saveState]
-  );
+  const acceptTriggerTask = useCallback(async (task: TriggerTask) => {
+    setState((prev) => {
+      const next = { ...prev, activeTriggerTask: task, triggerTaskAccepted: true };
+      saveState(next);
+      return next;
+    });
+  }, [saveState]);
 
   const completeTriggerTask = useCallback(async () => {
     setState((prev) => {
-      const next: GuiderState = {
+      const next = {
         ...prev,
         activeTriggerTask: null,
         triggerTaskAccepted: false,
@@ -406,11 +377,7 @@ export function GuiderProvider({ children }: { children: React.ReactNode }) {
 
   const dismissTriggerTask = useCallback(async () => {
     setState((prev) => {
-      const next: GuiderState = {
-        ...prev,
-        activeTriggerTask: null,
-        triggerTaskAccepted: false,
-      };
+      const next = { ...prev, activeTriggerTask: null, triggerTaskAccepted: false };
       saveState(next);
       return next;
     });

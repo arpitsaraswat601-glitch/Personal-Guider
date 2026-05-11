@@ -1,18 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
 
 import { Stage } from "@/context/GuiderContext";
 import { useColors } from "@/hooks/useColors";
+import { useLang } from "@/context/LanguageContext";
 
 interface Props {
   streakStart: string | null;
@@ -40,8 +31,7 @@ function getElapsed(startIso: string) {
 
 export function TimerCircle({ streakStart, timerStarted, stage, onStart, onStop }: Props) {
   const colors = useColors();
-  const glowAnim = useSharedValue(0);
-  const scaleAnim = useSharedValue(1);
+  const { t } = useLang();
   const [elapsed, setElapsed] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -53,107 +43,61 @@ export function TimerCircle({ streakStart, timerStarted, stage, onStart, onStop 
     return () => clearInterval(interval);
   }, [timerStarted, streakStart]);
 
-  useEffect(() => {
-    glowAnim.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.35, { duration: 2500, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      false
-    );
-  }, [glowAnim]);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glowAnim.value, [0, 1], [0.3, 0.8]),
-    transform: [{ scale: interpolate(glowAnim.value, [0, 1], [0.98, 1.03]) }],
-  }));
-
-  const outerGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glowAnim.value, [0, 1], [0.06, 0.18]),
-  }));
-
-  const handlePressIn = () => { scaleAnim.value = withTiming(0.95, { duration: 100 }); };
-  const handlePressOut = () => { scaleAnim.value = withSpring(1, { damping: 14 }); };
-
-  const btnStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scaleAnim.value }],
-  }));
-
   return (
     <View style={styles.wrapper}>
-      {/* Outer ambient glow — contained within wrapper */}
-      <Animated.View
-        style={[styles.outerGlow, { backgroundColor: stage.color }, outerGlowStyle]}
-      />
-
-      {/* Main circle */}
-      <Animated.View
-        style={[
-          styles.circle,
-          { borderColor: stage.color, shadowColor: stage.color },
-          glowStyle,
-        ]}
-      >
+      {/* Static circle — no animation */}
+      <View style={[styles.circle, { borderColor: stage.color }]}>
         {timerStarted && streakStart ? (
           <View style={styles.timerContent}>
-            {/* h m s row */}
-            <Text style={styles.timeRow}>
+            {/* Main time digits */}
+            <View style={styles.timeRow}>
               <Text style={styles.timeNum}>{pad(elapsed.hours)}</Text>
-              <Text style={styles.timeUnit}>h </Text>
+              <Text style={styles.timeUnit}>h</Text>
+              <Text style={styles.timeSpacer}> </Text>
               <Text style={styles.timeNum}>{pad(elapsed.minutes)}</Text>
-              <Text style={styles.timeUnit}>m </Text>
+              <Text style={styles.timeUnit}>m</Text>
+              <Text style={styles.timeSpacer}> </Text>
               <Text style={styles.timeNum}>{pad(elapsed.seconds)}</Text>
               <Text style={styles.timeUnit}>s</Text>
-            </Text>
+            </View>
 
             {/* Day badge */}
             <View style={styles.dayBadge}>
-              <Text style={styles.dayText}>Day {elapsed.days}</Text>
+              <Text style={styles.dayText}>
+                {t("timerDay")} {elapsed.days}
+              </Text>
             </View>
 
-            {/* Stage name */}
+            {/* Stage label */}
             <Text style={[styles.stageName, { color: stage.color }]}>
               {stage.name.toUpperCase()}
             </Text>
 
             {/* Stop */}
             <Pressable onPress={onStop} style={styles.stopBtn}>
-              <Text style={styles.stopText}>STOP</Text>
+              <Text style={styles.stopText}>{t("timerStop")}</Text>
             </Pressable>
           </View>
         ) : (
-          <Animated.View style={btnStyle}>
-            <Pressable
-              onPress={onStart}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              style={[styles.startBtn, { backgroundColor: colors.primary }]}
-            >
-              <Text style={styles.startText}>START</Text>
-            </Pressable>
-          </Animated.View>
+          <Pressable
+            onPress={onStart}
+            style={[styles.startBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.startText}>{t("timerStart")}</Text>
+          </Pressable>
         )}
-      </Animated.View>
+      </View>
     </View>
   );
 }
 
-const CIRCLE_SIZE = 200;
+const CIRCLE_SIZE = 210;
 
 const styles = StyleSheet.create({
   wrapper: {
     alignItems: "center",
     justifyContent: "center",
-    width: CIRCLE_SIZE + 40,
-    height: CIRCLE_SIZE + 40,
     alignSelf: "center",
-  },
-  outerGlow: {
-    position: "absolute",
-    width: CIRCLE_SIZE + 40,
-    height: CIRCLE_SIZE + 40,
-    borderRadius: (CIRCLE_SIZE + 40) / 2,
   },
   circle: {
     width: CIRCLE_SIZE,
@@ -163,62 +107,57 @@ const styles = StyleSheet.create({
     backgroundColor: "#0C0C0C",
     alignItems: "center",
     justifyContent: "center",
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 24,
-    elevation: 12,
   },
   timerContent: {
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
+    gap: 6,
+    paddingHorizontal: 10,
   },
   timeRow: {
-    lineHeight: 36,
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   timeNum: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "700",
     color: "#FFFFFF",
-    textShadowColor: "rgba(255,255,255,0.85)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
+    letterSpacing: -0.5,
   },
   timeUnit: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#FFFFFFBB",
-    textShadowColor: "rgba(255,255,255,0.5)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+    color: "#FFFFFFAA",
+  },
+  timeSpacer: {
+    fontSize: 14,
+    color: "transparent",
+    width: 6,
   },
   dayBadge: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 4,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: "#FFFFFF30",
-    backgroundColor: "#FFFFFF10",
+    borderColor: "#FFFFFF25",
+    backgroundColor: "#FFFFFF0C",
   },
   dayText: {
     fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     color: "#FFFFFF",
-    textShadowColor: "rgba(255,255,255,0.8)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
   stageName: {
     fontSize: 9,
-    letterSpacing: 2,
+    letterSpacing: 2.5,
   },
   stopBtn: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingVertical: 5,
     borderRadius: 100,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: "#1C1C1C",
     borderWidth: 1,
-    borderColor: "#FF444440",
+    borderColor: "#FF444430",
   },
   stopText: {
     color: "#FF6B6B",
@@ -227,18 +166,13 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   startBtn: {
-    paddingHorizontal: 36,
-    paddingVertical: 14,
+    paddingHorizontal: 40,
+    paddingVertical: 15,
     borderRadius: 100,
-    shadowColor: "#FF6B35",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 8,
   },
   startText: {
     color: "#FFFFFF",
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "800",
     letterSpacing: 3,
   },
